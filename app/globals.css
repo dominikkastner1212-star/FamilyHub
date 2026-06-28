@@ -1,0 +1,116 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-sans;
+  }
+}
+
+@layer components {
+  /* Clay-Karte: weiche 3D-Plastik-Optik */
+  .clay {
+    @apply bg-card rounded-clay p-5 shadow-clay relative;
+  }
+  /* gedrückter Clay-Button – federt beim Antippen spürbar ein und zurück */
+  .clay-btn {
+    @apply rounded-pill font-extrabold text-white shadow-clay-btn;
+    transition: transform .14s cubic-bezier(.34,1.56,.64,1);
+  }
+  .clay-btn:active {
+    transform: scale(.92);
+  }
+  /* tippbare Flächen allgemein: leichtes Einsinken */
+  .tappable {
+    transition: transform .14s cubic-bezier(.34,1.56,.64,1);
+  }
+  .tappable:active {
+    transform: scale(.96);
+  }
+  /* eingelassenes Eingabefeld */
+  .clay-input {
+    @apply bg-card rounded-[18px] px-4 py-3 font-semibold text-ink shadow-clay-in outline-none placeholder:text-[#C3B4A0];
+    transition: box-shadow .2s, transform .2s;
+  }
+  .clay-input:focus {
+    @apply shadow-clay-btn;
+  }
+  .label {
+    @apply text-[12px] uppercase tracking-[1.4px] text-muted font-extrabold mb-3;
+  }
+}
+
+/* Touch-Highlight global entfernen, damit Eigen-Feedback sauber wirkt */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- Lebendige Animationen ---------- */
+
+/* Häkchen rastet mit kleinem Überschwingen ein */
+@keyframes check-pop {
+  0%   { transform: scale(0) rotate(-12deg); }
+  60%  { transform: scale(1.25) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.animate-check { animation: check-pop .34s cubic-bezier(.34,1.56,.64,1); }
+
+/* abgehakte Zeile gibt kurz nach (zufriedener "tick") */
+@keyframes row-done {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(.97); }
+  100% { transform: scale(1); }
+}
+.animate-done { animation: row-done .3s ease; }
+
+/* neuer Listeneintrag hüpft sanft rein */
+@keyframes item-in {
+  0%   { opacity: 0; transform: translateY(-10px) scale(.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-item-in { animation: item-in .38s cubic-bezier(.34,1.56,.64,1); }
+
+/* Aufklappen weich rein */
+@keyframes expand-in {
+  0%   { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-expand { animation: expand-in .32s cubic-bezier(.2,.9,.3,1.1); }
+
+/* Toast gleitet hoch rein, leicht überschwingend */
+@keyframes toast-in {
+  0%   { opacity: 0; transform: translateY(16px) scale(.92); }
+  60%  { opacity: 1; transform: translateY(-3px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast { animation: toast-in .4s cubic-bezier(.34,1.56,.64,1); }
+
+/* Karten/Screens beim Tab-Wechsel sanft rein */
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-screen { animation: screen-in .35s cubic-bezier(.2,.9,.3,1.05); }
+
+/* sanftes Pulsieren für Lade-Platzhalter */
+@keyframes pulse-soft {
+  0%,100% { opacity: 1; }
+  50%     { opacity: .55; }
+}
+.animate-pulse-soft { animation: pulse-soft 1.3s ease-in-out infinite; }
+
+/* Respekt vor Nutzern, die wenig Bewegung wollen */
+@media (prefers-reduced-motion: reduce) {
+  .animate-check, .animate-done, .animate-item-in, .animate-expand,
+  .animate-toast, .animate-screen, .clay-btn, .tappable {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* dekorative Hintergrund-Blobs */
+body::before, body::after {
+  content: ""; position: fixed; border-radius: 9999px; filter: blur(8px); opacity: .5; z-index: 0; pointer-events: none;
+}
+body::before { width: 220px; height: 220px; background: radial-gradient(circle, #F4C2DD, transparent 70%); top: -40px; right: -60px; }
+body::after  { width: 260px; height: 260px; background: radial-gradient(circle, #D9C2F0, transparent 70%); bottom: 120px; left: -90px; }
