@@ -30,9 +30,11 @@ alter table events           enable row level security;
 alter table shopping_items   enable row level security;
 
 -- ---------- FAMILIES ----------
--- Sehen: nur Familien, in denen ich Mitglied bin.
+-- Sehen: Mitglieder der Familie, oder der Ersteller (auch bevor sein
+-- members-Eintrag existiert – nötig, weil insert().select() die neue
+-- Zeile sofort zurückliest und dafür schon sichtbar sein muss).
 create policy "families_select" on families for select
-  using (id in (select my_family_ids()));
+  using (id in (select my_family_ids()) or created_by = auth.uid());
 -- Erstellen: jeder eingeloggte Nutzer darf eine Familie gründen.
 create policy "families_insert" on families for insert
   with check (created_by = auth.uid());
