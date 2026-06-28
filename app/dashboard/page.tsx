@@ -267,9 +267,9 @@ export default function Dashboard() {
             <MiniCalendar events={events} />
             <div className="clay">
               <p className="label">Kalender-Sync</p>
-              <div className="flex items-center gap-3 rounded-[18px] p-3.5 font-bold text-[13px]" style={{ background: "linear-gradient(140deg,#E4F1E9,#D2E9DC)", color: "#2f5c47", boxShadow: "inset 2px 2px 6px rgba(90,150,120,.2)" }}>
+              <div className="flex items-center gap-3 rounded-[18px] p-3.5 font-bold text-[13px]" style={{ background: "linear-gradient(140deg,#F4EBD8,#EADFC4)", color: "#7a5c1f", boxShadow: "inset 2px 2px 6px rgba(160,130,60,.2)" }}>
                 <span className="w-[38px] h-[38px] rounded-[13px] bg-white grid place-items-center text-lg shadow-clay-sm">🍎</span>
-                <div>Apple Kalender · synchronisiert 12:04<br /><span className="opacity-70">Verbunden via CalDAV ✓</span></div>
+                <div>Apple Kalender<br /><span className="opacity-70">Sync via CalDAV ist geplant – noch nicht verfügbar</span></div>
               </div>
             </div>
           </div>
