@@ -23,9 +23,60 @@ import { useNotes } from "@/lib/useNotes";
 import { TasksTab } from "@/components/TasksTab";
 import { MealsTab } from "@/components/MealsTab";
 import { NotesBoard } from "@/components/NotesBoard";
-import { DEMO_WEEK, DEMO_TODAY } from "@/lib/demo-data";
+import type { WeekEvent } from "@/components/WeekCheck";
+import type { FamilyEvent } from "@/lib/useEvents";
 
-const UV_NOW = 7; // wird später aus dem Wetter-State gezogen
+// Farbverläufe für die Wochenstart-Karten, zyklisch je Termin vergeben
+const WEEK_COLORS = [
+  "linear-gradient(140deg,#5FC9A0,#3DAE84)",
+  "linear-gradient(140deg,#4FB6E8,#2E97CB)",
+  "linear-gradient(140deg,#F4A84A,#E08628)",
+  "linear-gradient(140deg,#F47B6B,#E05B49)",
+  "linear-gradient(140deg,#8E7CDB,#6F5BC9)",
+  "linear-gradient(140deg,#E86FA6,#D14D8C)",
+];
+// Hintergrund + Akzentfarbe für die "Heute"-Karte, zyklisch je Termin vergeben
+const TODAY_PALETTE = [
+  { bg: "#D6EFE0", color: "#3DAE84" },
+  { bg: "#FCE0DB", color: "#E05B49" },
+  { bg: "#E6E0F8", color: "#6F5BC9" },
+  { bg: "#FDEBD3", color: "#E08628" },
+  { bg: "#DCEFFA", color: "#2E97CB" },
+];
+
+function weekEventsFrom(events: FamilyEvent[]): WeekEvent[] {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return events
+    .filter((e) => { const d = new Date(e.starts_at); return d >= start && d < end; })
+    .map((e, i) => {
+      const d = new Date(e.starts_at);
+      return {
+        title: e.title,
+        day: d.toLocaleDateString("de-DE", { weekday: "short" }),
+        date: `${d.getDate()}.`,
+        icon: e.icon ?? "📅",
+        bring: e.bring_items ?? [],
+        color: WEEK_COLORS[i % WEEK_COLORS.length],
+      };
+    });
+}
+
+function todayEventsFrom(events: FamilyEvent[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  return events
+    .filter((e) => e.starts_at.slice(0, 10) === today)
+    .map((e, i) => ({
+      icon: e.icon ?? "📅",
+      bg: TODAY_PALETTE[i % TODAY_PALETTE.length].bg,
+      title: e.title,
+      meta: e.location ?? "",
+      time: new Date(e.starts_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+      color: TODAY_PALETTE[i % TODAY_PALETTE.length].color,
+    }));
+}
 
 // Einkaufs-Kategorie aus dem Filter-Label ableiten
 const CAT_MAP: Record<string, "lebensmittel" | "drogerie" | "sonstiges"> = {
@@ -39,8 +90,11 @@ export default function Dashboard() {
   const familyId = membership?.familyId ?? null;
   const memberId = membership?.memberId ?? null;
 
+  const [uvNow, setUvNow] = useState(0);
   const { items: shopping, loading: shopLoading, add: addShop, toggle: toggleShop } = useShopping(familyId, memberId);
   const { events, add: addEvent } = useEvents(familyId);
+  const weekEvents = weekEventsFrom(events);
+  const todayEvents = todayEventsFrom(events);
   const { children, loading: kidsLoading } = useChildren(familyId);
   const { members } = useMembers(familyId);
   const { tasks, loading: tasksLoading, add: addTask, toggle: toggleTask, remove: removeTask } = useTasks(familyId, memberId);
@@ -112,8 +166,8 @@ export default function Dashboard() {
           </header>
 
           <div className="px-[18px] space-y-4 mt-2">
-            <WeatherCard />
-            <WeekCheck events={DEMO_WEEK} />
+            <WeatherCard onUv={setUvNow} />
+            <WeekCheck events={weekEvents} />
 
             {(() => {
               const today = new Date().toISOString().slice(0, 10);
@@ -143,19 +197,21 @@ export default function Dashboard() {
               );
             })()}
 
-            <div className="clay">
-              <p className="label">Heute</p>
-              {DEMO_TODAY.map((e, i) => (
-                <div key={i} className="flex items-center gap-3.5 py-3 border-b border-line last:border-0">
-                  <div className="w-[42px] h-[42px] rounded-[15px] grid place-items-center text-xl flex-none shadow-clay-sm" style={{ background: e.bg }}>{e.icon}</div>
-                  <div>
-                    <div className="font-extrabold text-[15px]">{e.title}</div>
-                    <div className="text-muted text-[13px] font-semibold">{e.meta}</div>
+            {todayEvents.length > 0 && (
+              <div className="clay">
+                <p className="label">Heute</p>
+                {todayEvents.map((e, i) => (
+                  <div key={i} className="flex items-center gap-3.5 py-3 border-b border-line last:border-0">
+                    <div className="w-[42px] h-[42px] rounded-[15px] grid place-items-center text-xl flex-none shadow-clay-sm" style={{ background: e.bg }}>{e.icon}</div>
+                    <div>
+                      <div className="font-extrabold text-[15px]">{e.title}</div>
+                      <div className="text-muted text-[13px] font-semibold">{e.meta}</div>
+                    </div>
+                    <span className="ml-auto font-extrabold text-sm" style={{ color: e.color }}>{e.time}</span>
                   </div>
-                  <span className="ml-auto font-extrabold text-sm" style={{ color: e.color }}>{e.time}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Familien-Pinnwand */}
             <div>
@@ -208,7 +264,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            <MiniCalendar />
+            <MiniCalendar events={events} />
             <div className="clay">
               <p className="label">Kalender-Sync</p>
               <div className="flex items-center gap-3 rounded-[18px] p-3.5 font-bold text-[13px]" style={{ background: "linear-gradient(140deg,#E4F1E9,#D2E9DC)", color: "#2f5c47", boxShadow: "inset 2px 2px 6px rgba(90,150,120,.2)" }}>
@@ -326,7 +382,7 @@ export default function Dashboard() {
                 </p>
               </div>
             ) : (
-              <KidsTab kids={children} uvNow={UV_NOW} />
+              <KidsTab kids={children} uvNow={uvNow} />
             )}
             <InviteCard familyName={membership?.familyName ?? "Unsere Familie"} />
           </div>
@@ -339,29 +395,53 @@ export default function Dashboard() {
   );
 }
 
-// Mini-Monatskalender mit farbigen Event-Punkten
-function MiniCalendar() {
-  const C = { a: "#E86FA6", c: "#F47B6B", g: "#8E7CDB", s: "#4FB6E8", m: "#5FC9A0" };
-  const ev: Record<number, string[]> = { 5: [C.c], 12: [C.m], 18: [C.m, C.c, C.g], 19: [C.c], 20: [C.m], 21: [C.s] };
+// Mini-Monatskalender mit Punkten an Tagen mit echten Terminen
+const CAL_DOT_COLOR = "#8E7CDB";
+
+function MiniCalendar({ events }: { events: FamilyEvent[] }) {
+  const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; });
+  const today = new Date();
+  const year = cursor.getFullYear();
+  const monthIdx = cursor.getMonth();
+
+  const dotsByDay = new Map<number, number>();
+  events.forEach((e) => {
+    const d = new Date(e.starts_at);
+    if (d.getFullYear() === year && d.getMonth() === monthIdx) {
+      dotsByDay.set(d.getDate(), (dotsByDay.get(d.getDate()) ?? 0) + 1);
+    }
+  });
+
+  const firstWeekday = (new Date(year, monthIdx, 1).getDay() + 6) % 7; // Montag = 0
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  const prevMonthDays = new Date(year, monthIdx, 0).getDate();
+
   const cells: JSX.Element[] = [];
   ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].forEach((d) => cells.push(<div key={"wd" + d} className="text-center text-[11px] text-muted font-extrabold pb-2">{d}</div>));
-  for (let i = 0; i < 7; i++) cells.push(<div key={"o" + i} className="aspect-square grid place-items-center text-sm font-bold text-[#D7C9B5]">{26 + i}</div>);
-  for (let d = 1; d <= 30; d++) {
-    const dots = ev[d] ?? [];
-    const today = d === 18;
+  for (let i = 0; i < firstWeekday; i++) {
+    cells.push(<div key={"o" + i} className="aspect-square grid place-items-center text-sm font-bold text-[#D7C9B5]">{prevMonthDays - firstWeekday + i + 1}</div>);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dots = dotsByDay.get(d) ?? 0;
+    const isToday = d === today.getDate() && monthIdx === today.getMonth() && year === today.getFullYear();
     cells.push(
-      <div key={d} className="aspect-square rounded-[15px] grid place-items-center text-sm font-bold relative" style={today ? { color: "#fff", background: "linear-gradient(140deg,#E86FA6,#D14D8C)", boxShadow: "3px 3px 9px rgba(209,77,140,.45), inset 1px 1px 2px rgba(255,255,255,.4)" } : {}}>
+      <div key={d} className="aspect-square rounded-[15px] grid place-items-center text-sm font-bold relative" style={isToday ? { color: "#fff", background: "linear-gradient(140deg,#E86FA6,#D14D8C)", boxShadow: "3px 3px 9px rgba(209,77,140,.45), inset 1px 1px 2px rgba(255,255,255,.4)" } : {}}>
         {d}
-        {dots.length > 0 && <span className="absolute bottom-1.5 flex gap-[3px]">{dots.map((c, i) => <i key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />)}</span>}
+        {dots > 0 && <span className="absolute bottom-1.5 flex gap-[3px]">{Array.from({ length: Math.min(dots, 3) }).map((_, i) => <i key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: CAL_DOT_COLOR }} />)}</span>}
       </div>
     );
   }
+
+  function shiftMonth(delta: number) {
+    setCursor((c) => { const n = new Date(c); n.setMonth(n.getMonth() + delta); return n; });
+  }
+
   return (
     <div className="clay">
       <div className="flex justify-between items-center mb-4">
-        <button className="nav w-10 h-10 rounded-[14px] bg-card text-lg font-extrabold shadow-clay-btn">‹</button>
-        <span className="text-lg font-black">Juni 2026</span>
-        <button className="nav w-10 h-10 rounded-[14px] bg-card text-lg font-extrabold shadow-clay-btn">›</button>
+        <button onClick={() => shiftMonth(-1)} className="nav w-10 h-10 rounded-[14px] bg-card text-lg font-extrabold shadow-clay-btn">‹</button>
+        <span className="text-lg font-black">{cursor.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}</span>
+        <button onClick={() => shiftMonth(1)} className="nav w-10 h-10 rounded-[14px] bg-card text-lg font-extrabold shadow-clay-btn">›</button>
       </div>
       <div className="grid grid-cols-7 gap-[5px]">{cells}</div>
     </div>

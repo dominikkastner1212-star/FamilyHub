@@ -14,15 +14,18 @@ type Weather = {
   error?: string;
 };
 
-export function WeatherCard() {
+export function WeatherCard({ onUv }: { onUv?: (uv: number) => void }) {
   const [w, setW] = useState<Weather | null>(null);
 
   useEffect(() => {
     fetch("/api/weather")
       .then((r) => r.json())
-      .then(setW)
+      .then((data: Weather) => {
+        setW(data);
+        if (typeof data.uvNow === "number") onUv?.(data.uvNow);
+      })
       .catch(() => setW({ city: "—", temp: null, error: "Offline" }));
-  }, []);
+  }, [onUv]);
 
   const uv = w?.uvNow ?? 0;
   const lvl = uvLevel(uv);
